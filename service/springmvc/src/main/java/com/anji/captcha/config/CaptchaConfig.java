@@ -46,7 +46,7 @@ public class CaptchaConfig {
         config.put(Const.CAPTCHA_WATER_MARK, "我的水印");
         config.put(Const.CAPTCHA_FONT_TYPE, "宋体");
         config.put(Const.CAPTCHA_TYPE, "default");
-        config.put(Const.CAPTCHA_INTERFERENCE_OPTIONS, "0");
+        config.put(Const.CAPTCHA_INTERFERENCE_OPTIONS, "2");
         config.put(Const.ORIGINAL_PATH_JIGSAW, "");
         config.put(Const.ORIGINAL_PATH_PIC_CLICK, "");
         config.put(Const.CAPTCHA_SLIP_OFFSET, "5");

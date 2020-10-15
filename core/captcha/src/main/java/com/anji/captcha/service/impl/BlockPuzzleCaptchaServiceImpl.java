@@ -326,7 +326,7 @@ public class BlockPuzzleCaptchaServiceImpl extends AbstractCaptchaService {
      * @param y             随机扣取坐标y
      * @throws Exception
      */
-    private static void interferenceByTemplate(BufferedImage oriImage, BufferedImage templateImage, int x, int y) {
+    public static void interferenceByTemplate(BufferedImage oriImage, BufferedImage templateImage, int x, int y) {
         //临时数组遍历用于高斯模糊存周边像素值
         int[][] martrix = new int[3][3];
         int[] values = new int[9];
