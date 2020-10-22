@@ -58,7 +58,7 @@ public abstract class AbstractCaptchaService implements CaptchaService {
 
     protected static String cacheType = "local";
 
-    protected static int captchaInterferenceOptions = 0;
+    protected static int captchaInterferenceOptions = 1;
 
     //判断应用是否实现了自定义缓存，没有就使用内存
     @Override

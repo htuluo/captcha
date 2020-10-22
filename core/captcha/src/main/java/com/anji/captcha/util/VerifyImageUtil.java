@@ -5,6 +5,8 @@ package com.anji.captcha.util;
  * @date ：Created in 2020/10/20
  * @description： //TODO
  */
+
+import com.anji.captcha.service.impl.BlockPuzzleCaptchaServiceImpl;
 import com.anji.captcha.util.dto.VerifyImage;
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
@@ -37,11 +39,11 @@ public class VerifyImageUtil {
     /**
      * 模板图宽度
      */
-    private static int CUT_WIDTH = 50;
+    private static int CUT_WIDTH = 60;
     /**
      * 模板图高度
      */
-    private static int CUT_HEIGHT = 50;
+    private static int CUT_HEIGHT = 60;
     /**
      * 抠图凸起圆心
      */
@@ -54,6 +56,7 @@ public class VerifyImageUtil {
      * 抠图的边框宽度
      */
     private static int SLIDER_IMG_OUT_PADDING = 1;
+    private static int INTERRUPT_IMG_COUNT = 1;
 
 
     /**
@@ -67,10 +70,26 @@ public class VerifyImageUtil {
         BufferedImage srcImage = ImageIO.read(new File(filePath));
         int locationX = CUT_WIDTH + new Random().nextInt(srcImage.getWidth() - CUT_WIDTH * 3);
         int locationY = CUT_HEIGHT + new Random().nextInt(srcImage.getHeight() - CUT_HEIGHT) / 2;
-        BufferedImage markImage = new BufferedImage(CUT_WIDTH,CUT_HEIGHT,BufferedImage.TYPE_4BYTE_ABGR);
+        BufferedImage markImage = new BufferedImage(CUT_WIDTH, CUT_HEIGHT, BufferedImage.TYPE_4BYTE_ABGR);
         int[][] data = getBlockData();
         cutImgByTemplate(srcImage, markImage, data, locationX, locationY);
-        return new VerifyImage(getImageBASE64(srcImage),getImageBASE64(markImage),locationX,locationY);
+        if (INTERRUPT_IMG_COUNT > 0) {
+            int interruptX = 0, interruptY = 0;
+            if (locationX < srcImage.getWidth() / 2) {
+                interruptX = locationX + CUT_WIDTH + new Random().nextInt(srcImage.getWidth() - locationX - CUT_WIDTH);
+            } else {
+                interruptX = new Random().nextInt(locationX - CUT_WIDTH*2);
+            }
+//            if (locationY < srcImage.getHeight() / 2) {
+//                interruptY = locationY + CUT_HEIGHT + new Random().nextInt(srcImage.getWidth() - locationY - CUT_HEIGHT);
+//            } else {
+//                interruptY = new Random().nextInt(locationX - CUT_HEIGHT);
+//            }
+            data = getBlockData();
+            cutImgByTemplate(srcImage, null, data, interruptX, locationY);
+
+        }
+        return new VerifyImage(getImageBASE64(srcImage), getImageBASE64(markImage), locationX, locationY);
     }
 
 
@@ -80,6 +99,7 @@ public class VerifyImageUtil {
      * 0 透明像素
      * 1 滑块像素
      * 2 阴影像素
+     *
      * @return int[][]
      */
     private static int[][] getBlockData() {
@@ -136,7 +156,7 @@ public class VerifyImageUtil {
                     //左上、右上
                     if (i >= RECTANGLE_PADDING - k && i < RECTANGLE_PADDING
                             && ((j >= RECTANGLE_PADDING - k && j < RECTANGLE_PADDING)
-                            || (j >= CUT_HEIGHT - RECTANGLE_PADDING - k && j < CUT_HEIGHT - RECTANGLE_PADDING +1))) {
+                            || (j >= CUT_HEIGHT - RECTANGLE_PADDING - k && j < CUT_HEIGHT - RECTANGLE_PADDING + 1))) {
                         data[i][j] = 2;
                     }
 
@@ -144,7 +164,7 @@ public class VerifyImageUtil {
                     if (i >= CUT_WIDTH - RECTANGLE_PADDING + k - 1 && i < CUT_WIDTH - RECTANGLE_PADDING + 1) {
                         for (int n = 1; n <= SLIDER_IMG_OUT_PADDING; n++) {
                             if (((j >= RECTANGLE_PADDING - n && j < RECTANGLE_PADDING)
-                                    || (j >= CUT_HEIGHT - RECTANGLE_PADDING - n && j <= CUT_HEIGHT - RECTANGLE_PADDING ))) {
+                                    || (j >= CUT_HEIGHT - RECTANGLE_PADDING - n && j <= CUT_HEIGHT - RECTANGLE_PADDING))) {
                                 data[i][j] = 2;
                             }
                         }
@@ -171,13 +191,17 @@ public class VerifyImageUtil {
     /**
      * 裁剪区块
      * 根据生成的滑块形状，对原图和裁剪块进行变色处理
-     * @param oriImage    原图
-     * @param targetImage 裁剪图
-     * @param blockImage  滑块
-     * @param x           裁剪点x
-     * @param y           裁剪点y
+     *
+     * @param oriImage   原图
+     * @param cutImage   裁剪图
+     * @param blockImage 滑块
+     * @param x          裁剪点x
+     * @param y          裁剪点y
      */
-    private static void cutImgByTemplate(BufferedImage oriImage, BufferedImage targetImage, int[][] blockImage, int x, int y) {
+    private static void cutImgByTemplate(BufferedImage oriImage, BufferedImage cutImage, int[][] blockImage, int x, int y) {
+        //临时数组遍历用于高斯模糊存周边像素值
+        int[][] martrix = new int[3][3];
+        int[] values = new int[9];
         for (int i = 0; i < CUT_WIDTH; i++) {
             for (int j = 0; j < CUT_HEIGHT; j++) {
                 int _x = x + i;
@@ -187,15 +211,24 @@ public class VerifyImageUtil {
                 // 原图中对应位置变色处理
                 if (rgbFlg == 1) {
                     //抠图上复制对应颜色值
-                    targetImage.setRGB(i,j, rgb_ori);
+                    if (cutImage != null) {
+                        cutImage.setRGB(i, j, rgb_ori);
+                    }
                     //原图对应位置颜色变化
-                    oriImage.setRGB(_x, _y, Color.LIGHT_GRAY.getRGB());
+                    readPixel(oriImage, x + i, y + j, values);
+                    fillMatrix(martrix, values);
+                    oriImage.setRGB(x + i, y + j, avgMatrix(martrix));
+//                    oriImage.setRGB(_x, _y, Color.LIGHT_GRAY.getRGB());
                 } else if (rgbFlg == 2) {
-                    targetImage.setRGB(i, j, Color.WHITE.getRGB());
+                    if (cutImage != null) {
+                        cutImage.setRGB(i, j, Color.WHITE.getRGB());
+                    }
                     oriImage.setRGB(_x, _y, Color.GRAY.getRGB());
-                }else if(rgbFlg == 0){
+                } else if (rgbFlg == 0) {
                     //int alpha = 0;
-                    targetImage.setRGB(i, j, rgb_ori & 0x00ffffff);
+                    if (cutImage != null) {
+                        cutImage.setRGB(i, j, rgb_ori & 0x00ffffff);
+                    }
                 }
             }
 
@@ -205,6 +238,7 @@ public class VerifyImageUtil {
 
     /**
      * 随机获取一张图片对象
+     *
      * @param path
      * @return
      * @throws IOException
@@ -213,9 +247,9 @@ public class VerifyImageUtil {
         File files = new File(path);
         File[] fileList = files.listFiles();
         List<String> fileNameList = new ArrayList<>();
-        if (fileList!=null && fileList.length!=0){
-            for (File tempFile:fileList){
-                if (tempFile.isFile() && tempFile.getName().endsWith(".jpg")){
+        if (fileList != null && fileList.length != 0) {
+            for (File tempFile : fileList) {
+                if (tempFile.isFile() && tempFile.getName().endsWith(".jpg")) {
                     fileNameList.add(tempFile.getAbsolutePath().trim());
                 }
             }
@@ -227,14 +261,15 @@ public class VerifyImageUtil {
 
     /**
      * 将IMG输出为文件
+     *
      * @param image
      * @param file
      * @throws Exception
      */
     public static void writeImg(BufferedImage image, String file) throws Exception {
         byte[] imagedata = null;
-        ByteArrayOutputStream bao=new ByteArrayOutputStream();
-        ImageIO.write(image,"png",bao);
+        ByteArrayOutputStream bao = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", bao);
         imagedata = bao.toByteArray();
         FileOutputStream out = new FileOutputStream(new File(file));
         out.write(imagedata);
@@ -243,13 +278,14 @@ public class VerifyImageUtil {
 
     /**
      * 将图片转换为BASE64
+     *
      * @param image
      * @return
      * @throws IOException
      */
     public static String getImageBASE64(BufferedImage image) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ImageIO.write(image,"png",out);
+        ImageIO.write(image, "png", out);
         //转成byte数组
         byte[] bytes = out.toByteArray();
         BASE64Encoder encoder = new BASE64Encoder();
@@ -259,12 +295,13 @@ public class VerifyImageUtil {
 
     /**
      * 将BASE64字符串转换为图片
+     *
      * @param base64String
      * @return
      */
     public static BufferedImage base64StringToImage(String base64String) {
         try {
-            BASE64Decoder decoder=new BASE64Decoder();
+            BASE64Decoder decoder = new BASE64Decoder();
             byte[] bytes1 = decoder.decodeBuffer(base64String);
             ByteArrayInputStream bais = new ByteArrayInputStream(bytes1);
             return ImageIO.read(bais);
@@ -273,4 +310,60 @@ public class VerifyImageUtil {
         }
         return null;
     }
+
+    private static void readPixel(BufferedImage img, int x, int y, int[] pixels) {
+        int xStart = x - 1;
+        int yStart = y - 1;
+        int current = 0;
+        for (int i = xStart; i < 3 + xStart; i++) {
+            for (int j = yStart; j < 3 + yStart; j++) {
+                int tx = i;
+                if (tx < 0) {
+                    tx = -tx;
+
+                } else if (tx >= img.getWidth()) {
+                    tx = x;
+                }
+                int ty = j;
+                if (ty < 0) {
+                    ty = -ty;
+                } else if (ty >= img.getHeight()) {
+                    ty = y;
+                }
+                pixels[current++] = img.getRGB(tx, ty);
+
+            }
+        }
+    }
+
+    private static void fillMatrix(int[][] matrix, int[] values) {
+        int filled = 0;
+        for (int i = 0; i < matrix.length; i++) {
+            int[] x = matrix[i];
+            for (int j = 0; j < x.length; j++) {
+                x[j] = values[filled++];
+            }
+        }
+    }
+
+    private static int avgMatrix(int[][] matrix) {
+        int r = 0;
+        int g = 0;
+        int b = 0;
+        for (int i = 0; i < matrix.length; i++) {
+            int[] x = matrix[i];
+            for (int j = 0; j < x.length; j++) {
+                if (j == 1) {
+                    continue;
+                }
+                Color c = new Color(x[j]);
+                r += c.getRed();
+                g += c.getGreen();
+                b += c.getBlue();
+            }
+        }
+        return new Color(r / 8, g / 8, b / 8).getRGB();
+    }
+
+
 }
