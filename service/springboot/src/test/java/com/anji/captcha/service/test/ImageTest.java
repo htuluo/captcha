@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
 import java.io.File;
 import java.io.IOException;
 
@@ -34,6 +35,7 @@ public class ImageTest {
 
     /**
      * 灰度图片处理
+     *
      * @throws IOException
      */
     @Test
@@ -42,10 +44,10 @@ public class ImageTest {
         BufferedImage originalImage = ImageUtils.getOriginal();
         int width = originalImage.getWidth();
         int height = originalImage.getHeight();
-        BufferedImage grayImage = new BufferedImage(width, height,BufferedImage.TYPE_BYTE_GRAY);
-        for (int i=0;i<width;i++){
-            for (int j=0;j<height;j++){
-                grayImage.setRGB(i,j,originalImage.getRGB(i,j));
+        BufferedImage grayImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                grayImage.setRGB(i, j, originalImage.getRGB(i, j));
             }
         }
         File outFile2 = new File("D:/gray.png");
@@ -54,12 +56,13 @@ public class ImageTest {
 
     /**
      * AES加密处理
+     *
      * @throws IOException
      */
     @Test
     public void test3() throws Exception {
 
-        PointVO pointVO=new PointVO();
+        PointVO pointVO = new PointVO();
         pointVO.setX(141);
         pointVO.setY(5);
         pointVO.setSecretKey("TkWAbsBuIOPHFJe4");
@@ -69,15 +72,22 @@ public class ImageTest {
 
     @Test
     public void test4() throws Exception {
+        VerifyImage verifyImage = null;
+        for (int i = 0; i < 20; i++) {
 
-        VerifyImage verifyImage = VerifyImageUtil.getVerifyImage("D:/aa.jpg");
+            verifyImage = VerifyImageUtil.getVerifyImage("D:/aa.jpg");
+        }
         BufferedImage srcImg = VerifyImageUtil.base64StringToImage(verifyImage.getSrcImage());
         BufferedImage cutImg = VerifyImageUtil.base64StringToImage(verifyImage.getCutImage());
+        BufferedImage srcFilterImg = new BufferedImage(srcImg.getWidth(), srcImg.getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+        VerifyImageUtil.simpleBlur(srcImg, srcFilterImg);
 
         File outFile1 = new File("D:/srcImg.png");
         File outFile2 = new File("D:/cutImg.png");
+        File outFile3 = new File("D:/srcImg_filter.png");
         ImageIO.write(srcImg, "PNG", outFile1);
         ImageIO.write(cutImg, "PNG", outFile2);
+        ImageIO.write(srcFilterImg, "PNG", outFile3);
 
     }
 }
