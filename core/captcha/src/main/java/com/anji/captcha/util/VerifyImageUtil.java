@@ -11,15 +11,16 @@ import com.anji.captcha.util.dto.VerifyImage;
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.awt.image.BufferedImageOp;
-import java.awt.image.ConvolveOp;
-import java.awt.image.Kernel;
+import java.awt.image.*;
 import java.io.*;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
@@ -73,9 +74,10 @@ public class VerifyImageUtil {
     public static VerifyImage getVerifyImage(String filePath) throws IOException {
         BufferedImage srcImage = ImageIO.read(new File(filePath));
         int locationX = CUT_WIDTH + new Random().nextInt(srcImage.getWidth() - CUT_WIDTH * 3);
-        int locationY = CUT_HEIGHT + new Random().nextInt(srcImage.getHeight() - CUT_HEIGHT) / 2;
+        int locationY = CUT_HEIGHT + new Random().nextInt(srcImage.getHeight() - CUT_HEIGHT*2) ;
         BufferedImage markImage = new BufferedImage(CUT_WIDTH, CUT_HEIGHT, BufferedImage.TYPE_4BYTE_ABGR);
         int[][] data = getBlockData();
+        System.out.println(MessageFormat.format("width:{0},height:{1},locationX:{2},locationY:{3}", srcImage.getWidth(), srcImage.getHeight(), locationX, locationY));
         cutImgByTemplate(srcImage, markImage, data, locationX, locationY);
         if (INTERRUPT_IMG_COUNT > 0) {
             int interruptX = 0, interruptY = 0;
@@ -415,4 +417,54 @@ public class VerifyImageUtil {
         BufferedImageOp op = getGaussianBlurFilter(1, false);
         op.filter(src, dest);
     }
+
+    public static BufferedImage compressImg(BufferedImage src){
+        BufferedImage newBfImg = new BufferedImage(new Double(src.getWidth()*0.8).intValue(), new Double(src.getHeight()*0.8).intValue(), BufferedImage.TYPE_4BYTE_ABGR);
+        Image img=src.getScaledInstance(src.getWidth(), src.getHeight(), Image.SCALE_SMOOTH);
+        Graphics graphics = newBfImg.getGraphics();
+        graphics.setColor(Color.RED);
+        // 绘制处理后的图
+        graphics.drawImage(img, 0, 0, null);
+        graphics.dispose();
+        return newBfImg;
+
+    }
+
+
+    /**
+     * 压缩
+     * @param img
+     * @param imagType
+     * @return
+     * @throws IOException
+     */
+    public static byte[] fromBufferedImage2(BufferedImage img,String imagType) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+//        bos.reset();
+        // 得到指定Format图片的writer
+        Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName(imagType);
+        ImageWriter writer = (ImageWriter) iter.next();
+
+        // 得到指定writer的输出参数设置(ImageWriteParam )
+        ImageWriteParam iwp = writer.getDefaultWriteParam();
+        iwp.setCompressionMode(ImageWriteParam.MODE_EXPLICIT); // 设置可否压缩
+        iwp.setCompressionQuality(1f); // 设置压缩质量参数
+
+        iwp.setProgressiveMode(ImageWriteParam.MODE_DISABLED);
+
+        ColorModel colorModel = ColorModel.getRGBdefault();
+        // 指定压缩时使用的色彩模式
+        iwp.setDestinationType(new javax.imageio.ImageTypeSpecifier(colorModel,
+                colorModel.createCompatibleSampleModel(16, 16)));
+
+        writer.setOutput(ImageIO
+                .createImageOutputStream(bos));
+        IIOImage iIamge = new IIOImage(img, null, null);
+        writer.write(null, iIamge, iwp);
+
+        byte[] d = bos.toByteArray();
+        return d;
+    }
+
+
 }

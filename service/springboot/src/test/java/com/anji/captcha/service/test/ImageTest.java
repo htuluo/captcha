@@ -73,21 +73,24 @@ public class ImageTest {
     @Test
     public void test4() throws Exception {
         VerifyImage verifyImage = null;
-        for (int i = 0; i < 20; i++) {
+//        for (int i = 0; i < 500; i++) {
 
-            verifyImage = VerifyImageUtil.getVerifyImage("D:/aa.jpg");
-        }
+        verifyImage = VerifyImageUtil.getVerifyImage("D:/images/1.png");
+//        }
         BufferedImage srcImg = VerifyImageUtil.base64StringToImage(verifyImage.getSrcImage());
+        BufferedImage zipImg=VerifyImageUtil.compressImg(srcImg);
         BufferedImage cutImg = VerifyImageUtil.base64StringToImage(verifyImage.getCutImage());
-        BufferedImage srcFilterImg = new BufferedImage(srcImg.getWidth(), srcImg.getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
-        VerifyImageUtil.simpleBlur(srcImg, srcFilterImg);
+        //高斯模糊
+//        BufferedImage srcFilterImg = new BufferedImage(srcImg.getWidth(), srcImg.getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+//        VerifyImageUtil.simpleBlur(srcImg, srcFilterImg);
 
         File outFile1 = new File("D:/srcImg.png");
         File outFile2 = new File("D:/cutImg.png");
         File outFile3 = new File("D:/srcImg_filter.png");
+        File outFile4 = new File("D:/srcImg_zip.png");
         ImageIO.write(srcImg, "PNG", outFile1);
         ImageIO.write(cutImg, "PNG", outFile2);
-        ImageIO.write(srcFilterImg, "PNG", outFile3);
+//        ImageIO.write(zipImg, "PNG", outFile4);
 
     }
 }
