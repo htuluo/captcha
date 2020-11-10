@@ -109,7 +109,7 @@ public class VerifyImageUtil {
      *
      * @return int[][]
      */
-    private static int[][] getBlockData() {
+    public static int[][] getBlockData() {
         int[][] data = new int[CUT_WIDTH][CUT_HEIGHT];
         Random random = new Random();
         //(x-a)²+(y-b)²=r²

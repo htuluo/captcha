@@ -73,10 +73,10 @@ public class ImageTest {
     @Test
     public void test4() throws Exception {
         VerifyImage verifyImage = null;
-//        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 5000; i++) {
 
         verifyImage = VerifyImageUtil.getVerifyImage("D:/images/1.png");
-//        }
+        }
         BufferedImage srcImg = VerifyImageUtil.base64StringToImage(verifyImage.getSrcImage());
         BufferedImage zipImg=VerifyImageUtil.compressImg(srcImg);
         BufferedImage cutImg = VerifyImageUtil.base64StringToImage(verifyImage.getCutImage());
@@ -91,6 +91,21 @@ public class ImageTest {
         ImageIO.write(srcImg, "PNG", outFile1);
         ImageIO.write(cutImg, "PNG", outFile2);
 //        ImageIO.write(zipImg, "PNG", outFile4);
+
+    }
+
+    @Test
+    public void test5() throws Exception {
+        int[][] data = null;
+//        for (int i = 0; i < 500; i++) {
+
+        data = VerifyImageUtil.getBlockData();
+        for (int i = 0; i < data.length; i++) {
+            for (int j = 0; j < data[i].length; j++) {
+                System.out.print(String.valueOf(data[i][j]));
+            }
+            System.out.println();
+        }
 
     }
 }
